@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 interface AttendanceStats {
     totalClasses: number;
@@ -35,7 +36,7 @@ const StudentDashboard: React.FC = () => {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const response = await api.get(`/api/student/stats?studentId=${studentId}`);
+            const response = await api.get(`/api/student/stats/${studentId}`);
             setStats(response.data);
         } catch (error) {
             console.error('Error fetching stats:', error);
@@ -171,6 +172,55 @@ const StudentDashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Attendance Graph */}
+                <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">📈 Attendance Analysis</h2>
+                    {courseAttendance.length > 0 ? (
+                        <div className="h-[400px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={courseAttendance}
+                                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="courseCode" />
+                                    <YAxis />
+                                    <Tooltip
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="bg-white p-4 border rounded shadow-lg">
+                                                        <p className="font-bold">{data.courseName}</p>
+                                                        <p className="text-sm text-gray-600">Code: {label}</p>
+                                                        <p className="text-sm text-blue-600">Total: {data.totalClasses}</p>
+                                                        <p className="text-sm text-green-600">Present: {data.presentCount}</p>
+                                                        <p className="text-sm font-bold mt-1">
+                                                            {data.percentage}% Attendance
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Legend />
+                                    <Bar dataKey="totalClasses" name="Total Classes" fill="#94a3b8" />
+                                    <Bar dataKey="presentCount" name="Classes Attended" fill="#16a34a">
+                                        {courseAttendance.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.percentage >= 75 ? '#16a34a' : entry.percentage >= 65 ? '#ca8a04' : '#dc2626'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-gray-500">
+                            No data available for graph
+                        </div>
+                    )}
                 </div>
 
                 {/* Course-wise Attendance */}

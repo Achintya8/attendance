@@ -20,7 +20,7 @@ public class StudentController {
     }
 
     @GetMapping("/stats/{studentId}")
-    public ResponseEntity<Map<AttendanceStatus, Long>> getStats(@PathVariable Long studentId) {
+    public ResponseEntity<Map<String, Object>> getStats(@PathVariable Long studentId) {
         return ResponseEntity.ok(attendanceService.getStudentStats(studentId));
     }
 
