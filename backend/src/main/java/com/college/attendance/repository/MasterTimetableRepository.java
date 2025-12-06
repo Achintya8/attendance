@@ -13,4 +13,6 @@ public interface MasterTimetableRepository extends JpaRepository<MasterTimetable
     List<MasterTimetable> findByTeacherIdAndDayOfWeek(Long teacherId, DayOfWeek dayOfWeek);
 
     List<MasterTimetable> findByTeacher(com.college.attendance.entity.Teacher teacher);
+
+    List<MasterTimetable> findByTeacherId(Long teacherId);
 }

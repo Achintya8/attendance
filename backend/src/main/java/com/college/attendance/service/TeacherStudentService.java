@@ -17,18 +17,21 @@ public class TeacherStudentService {
     private final TeacherRepository teacherRepository;
     private final CourseRepository courseRepository;
     private final StudentCourseEnrollmentRepository studentCourseEnrollmentRepository;
+    private final MasterTimetableRepository masterTimetableRepository;
 
     public TeacherStudentService(StudentRepository studentRepository, AttendanceRepository attendanceRepository,
             TeacherCourseAllocationRepository teacherCourseAllocationRepository,
             TeacherRepository teacherRepository,
             CourseRepository courseRepository,
-            StudentCourseEnrollmentRepository studentCourseEnrollmentRepository) {
+            StudentCourseEnrollmentRepository studentCourseEnrollmentRepository,
+            MasterTimetableRepository masterTimetableRepository) {
         this.studentRepository = studentRepository;
         this.attendanceRepository = attendanceRepository;
         this.teacherCourseAllocationRepository = teacherCourseAllocationRepository;
         this.teacherRepository = teacherRepository;
         this.courseRepository = courseRepository;
         this.studentCourseEnrollmentRepository = studentCourseEnrollmentRepository;
+        this.masterTimetableRepository = masterTimetableRepository;
     }
 
     public List<StudentDetailDTO> getTeacherStudents(Long teacherId, String courseIdStr, String section) {
@@ -63,13 +66,16 @@ public class TeacherStudentService {
                     }
 
                     return students.stream()
-                            .map(this::convertToStudentDetailDTO)
+                            .sorted(Comparator.comparing(Student::getName, String.CASE_INSENSITIVE_ORDER))
+                            .map(s -> convertToStudentDetailDTO(s, courseId))
                             .collect(Collectors.toList());
                 }
             }
         }
 
         // Default behavior: Filter by Department (Course's if present, else Teacher's)
+        Long courseFilterId = (courseIdStr != null && !courseIdStr.isEmpty()) ? Long.parseLong(courseIdStr) : null;
+
         if (section != null && !section.isEmpty() && !section.equalsIgnoreCase("MERGED")) {
             if (section.contains(",")) {
                 List<String> sections = Arrays.asList(section.split(","));
@@ -82,20 +88,47 @@ public class TeacherStudentService {
         }
 
         return students.stream()
-                .map(this::convertToStudentDetailDTO)
+                .sorted(Comparator.comparing(Student::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(s -> convertToStudentDetailDTO(s, courseFilterId))
                 .collect(Collectors.toList());
     }
 
     public List<String> getTeacherSections(Long teacherId) {
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
-        return studentRepository.findDistinctSectionsByDepartmentId(teacher.getDepartment().getId());
+
+        Set<String> sections = new HashSet<>();
+
+        // 1. Sections from Home Department
+        sections.addAll(studentRepository.findDistinctSectionsByDepartmentId(teacher.getDepartment().getId()));
+
+        // 2. Sections from Teacher Course Allocations
+        List<TeacherCourseAllocation> allocations = teacherCourseAllocationRepository.findByTeacherId(teacherId);
+        for (TeacherCourseAllocation alloc : allocations) {
+            if (alloc.getSection() != null && !alloc.getSection().isEmpty()
+                    && !alloc.getSection().equals("MERGED")) {
+                sections.add(alloc.getSection());
+            }
+        }
+
+        // 3. Sections from Master Timetable
+        List<MasterTimetable> timetableEntries = masterTimetableRepository.findByTeacherId(teacherId); // Need to ensure
+                                                                                                       // this method
+                                                                                                       // exists
+        for (MasterTimetable mt : timetableEntries) {
+            if (mt.getSection() != null && !mt.getSection().isEmpty()
+                    && !mt.getSection().equals("MERGED")) {
+                sections.add(mt.getSection());
+            }
+        }
+
+        return sections.stream().sorted().collect(Collectors.toList());
     }
 
     public StudentDetailDTO getStudentDetail(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
-        return convertToStudentDetailDTO(student);
+        return convertToStudentDetailDTO(student, null);
     }
 
     public List<Attendance> getStudentAttendanceHistory(Long studentId) {
@@ -106,12 +139,19 @@ public class TeacherStudentService {
         List<Student> students = studentRepository.findByNameContainingIgnoreCaseOrRollNumContainingIgnoreCase(query,
                 query);
         return students.stream()
-                .map(this::convertToStudentDetailDTO)
+                .map(s -> convertToStudentDetailDTO(s, null))
                 .collect(Collectors.toList());
     }
 
-    private StudentDetailDTO convertToStudentDetailDTO(Student student) {
+    private StudentDetailDTO convertToStudentDetailDTO(Student student, Long courseId) {
         List<Attendance> attendanceRecords = attendanceRepository.findByStudentId(student.getId());
+
+        // Filter by course if provided
+        if (courseId != null) {
+            attendanceRecords = attendanceRecords.stream()
+                    .filter(a -> a.getSession().getCourse().getId().equals(courseId))
+                    .collect(Collectors.toList());
+        }
 
         // Calculate attendance stats
         Map<String, Long> breakdown = attendanceRecords.stream()

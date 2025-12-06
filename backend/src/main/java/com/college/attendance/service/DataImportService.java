@@ -27,9 +27,14 @@ public class DataImportService {
     private final UserRepository userRepository;
     private final MasterTimetableRepository masterTimetableRepository;
     private final StudentElectiveMappingRepository studentElectiveMappingRepository;
+    private final StudentCourseEnrollmentRepository studentCourseEnrollmentRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public DataImportService(StudentRepository studentRepository, TeacherRepository teacherRepository, DepartmentRepository departmentRepository, CourseRepository courseRepository, UserRepository userRepository, MasterTimetableRepository masterTimetableRepository, StudentElectiveMappingRepository studentElectiveMappingRepository, PasswordEncoder passwordEncoder) {
+    public DataImportService(StudentRepository studentRepository, TeacherRepository teacherRepository,
+            DepartmentRepository departmentRepository, CourseRepository courseRepository, UserRepository userRepository,
+            MasterTimetableRepository masterTimetableRepository,
+            StudentElectiveMappingRepository studentElectiveMappingRepository,
+            StudentCourseEnrollmentRepository studentCourseEnrollmentRepository, PasswordEncoder passwordEncoder) {
         this.studentRepository = studentRepository;
         this.teacherRepository = teacherRepository;
         this.departmentRepository = departmentRepository;
@@ -37,6 +42,7 @@ public class DataImportService {
         this.userRepository = userRepository;
         this.masterTimetableRepository = masterTimetableRepository;
         this.studentElectiveMappingRepository = studentElectiveMappingRepository;
+        this.studentCourseEnrollmentRepository = studentCourseEnrollmentRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -53,20 +59,24 @@ public class DataImportService {
             // Pre-load departments
             departmentRepository.findAll().forEach(d -> {
                 deptCache.put(d.getName().toUpperCase(), d);
-                if (d.getCode() != null) deptCache.put(d.getCode().toUpperCase(), d);
+                if (d.getCode() != null)
+                    deptCache.put(d.getCode().toUpperCase(), d);
             });
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
+                if (row.getRowNum() == 0)
+                    continue;
 
                 String name = dataFormatter.formatCellValue(row.getCell(0)).trim();
                 String email = dataFormatter.formatCellValue(row.getCell(1)).trim().toLowerCase();
                 String deptName = dataFormatter.formatCellValue(row.getCell(2)).trim();
 
-                if (name.isEmpty() || email.isEmpty()) continue;
+                if (name.isEmpty() || email.isEmpty())
+                    continue;
 
                 Department dept = deptCache.computeIfAbsent(deptName.toUpperCase(), k -> {
-                    String code = deptName.length() >= 3 ? deptName.substring(0, 3).toUpperCase() : deptName.toUpperCase();
+                    String code = deptName.length() >= 3 ? deptName.substring(0, 3).toUpperCase()
+                            : deptName.toUpperCase();
                     return departmentRepository.save(new Department(null, deptName, code));
                 });
 
@@ -103,13 +113,15 @@ public class DataImportService {
             Map<String, Department> deptCache = new HashMap<>();
             departmentRepository.findAll().forEach(d -> {
                 deptCache.put(d.getName().toUpperCase(), d);
-                if (d.getCode() != null) deptCache.put(d.getCode().toUpperCase(), d);
+                if (d.getCode() != null)
+                    deptCache.put(d.getCode().toUpperCase(), d);
             });
 
             List<StudentImportData> importDataList = new ArrayList<>();
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
+                if (row.getRowNum() == 0)
+                    continue;
 
                 String rollNum = dataFormatter.formatCellValue(row.getCell(0)).trim().toUpperCase();
                 String name = dataFormatter.formatCellValue(row.getCell(1)).trim();
@@ -120,20 +132,24 @@ public class DataImportService {
                 String admissionYearStr = dataFormatter.formatCellValue(row.getCell(6)).trim();
                 String currentBatch = dataFormatter.formatCellValue(row.getCell(7)).trim();
 
-                if (rollNum.isEmpty() || name.isEmpty()) continue;
+                if (rollNum.isEmpty() || name.isEmpty())
+                    continue;
 
                 Department dept = deptCache.computeIfAbsent(deptName.toUpperCase(), k -> {
-                    String code = deptName.length() >= 3 ? deptName.substring(0, 3).toUpperCase() : deptName.toUpperCase();
+                    String code = deptName.length() >= 3 ? deptName.substring(0, 3).toUpperCase()
+                            : deptName.toUpperCase();
                     return departmentRepository.save(new Department(null, deptName, code));
                 });
 
                 int semester = semesterStr.isEmpty() ? 1 : Integer.parseInt(semesterStr);
-                int admissionYear = admissionYearStr.isEmpty() ? java.time.Year.now().getValue() - 3 : Integer.parseInt(admissionYearStr);
+                int admissionYear = admissionYearStr.isEmpty() ? java.time.Year.now().getValue() - 3
+                        : Integer.parseInt(admissionYearStr);
                 if (currentBatch.isEmpty()) {
                     currentBatch = admissionYear + "-" + (admissionYear + 4);
                 }
 
-                importDataList.add(new StudentImportData(rollNum, name, email, dept, semester, section, admissionYear, currentBatch));
+                importDataList.add(new StudentImportData(rollNum, name, email, dept, semester, section, admissionYear,
+                        currentBatch));
             }
 
             // Parallel processing for hashing passwords (significant performance boost)
@@ -166,7 +182,8 @@ public class DataImportService {
 
             studentRepository.saveAll(students);
 
-            System.out.println("Imported " + students.size() + " students in " + (System.currentTimeMillis() - startTime) + "ms");
+            System.out.println(
+                    "Imported " + students.size() + " students in " + (System.currentTimeMillis() - startTime) + "ms");
             return CompletableFuture.completedFuture("Imported " + students.size() + " students successfully");
         }
     }
@@ -182,7 +199,8 @@ public class DataImportService {
         String currentBatch;
         User user;
 
-        public StudentImportData(String rollNum, String name, String email, Department dept, int semester, String section, int admissionYear, String currentBatch) {
+        public StudentImportData(String rollNum, String name, String email, Department dept, int semester,
+                String section, int admissionYear, String currentBatch) {
             this.rollNum = rollNum;
             this.name = name;
             this.email = email;
@@ -202,7 +220,8 @@ public class DataImportService {
             List<MasterTimetable> timetables = new ArrayList<>();
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
+                if (row.getRowNum() == 0)
+                    continue;
 
                 String dayStr = dataFormatter.formatCellValue(row.getCell(0)).trim();
                 String periodStr = dataFormatter.formatCellValue(row.getCell(1)).trim();
@@ -210,11 +229,18 @@ public class DataImportService {
                 String teacherEmail = dataFormatter.formatCellValue(row.getCell(3)).trim();
                 String section = dataFormatter.formatCellValue(row.getCell(4)).trim();
 
-                if (dayStr.isEmpty() || courseCode.isEmpty()) continue;
+                // FIX: Default empty section to "MERGED" (implies all enrolled students for
+                // electives)
+                if (section.isEmpty()) {
+                    section = "MERGED";
+                }
+
+                if (dayStr.isEmpty() || courseCode.isEmpty())
+                    continue;
 
                 java.time.DayOfWeek day = java.time.DayOfWeek.valueOf(dayStr.toUpperCase());
                 int period = Integer.parseInt(periodStr);
-                
+
                 Course course = courseRepository.findByCode(courseCode)
                         .orElseThrow(() -> new RuntimeException("Course not found: " + courseCode));
                 Teacher teacher = teacherRepository.findByEmail(teacherEmail)
@@ -230,7 +256,8 @@ public class DataImportService {
                 timetables.add(mt);
             }
             masterTimetableRepository.saveAll(timetables);
-            return CompletableFuture.completedFuture("Imported " + timetables.size() + " timetable entries successfully");
+            return CompletableFuture
+                    .completedFuture("Imported " + timetables.size() + " timetable entries successfully");
         }
     }
 
@@ -239,29 +266,50 @@ public class DataImportService {
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
             DataFormatter dataFormatter = new DataFormatter();
-            List<StudentElectiveMapping> mappings = new ArrayList<>();
-            
+            List<StudentCourseEnrollment> enrollments = new ArrayList<>();
+
+            // Cache courses and students to minimize DB calls
+            Map<String, Course> courseCache = new HashMap<>();
+
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
+                if (row.getRowNum() == 0)
+                    continue;
 
                 String studentRollNum = dataFormatter.formatCellValue(row.getCell(0)).trim();
                 String courseCode = dataFormatter.formatCellValue(row.getCell(1)).trim();
 
-                if (studentRollNum.isEmpty() || courseCode.isEmpty()) continue;
+                if (studentRollNum.isEmpty() || courseCode.isEmpty())
+                    continue;
 
                 Student student = studentRepository.findByRollNum(studentRollNum)
                         .orElseThrow(() -> new RuntimeException("Student not found: " + studentRollNum));
-                Course course = courseRepository.findByCode(courseCode)
-                        .orElseThrow(() -> new RuntimeException("Course not found: " + courseCode));
 
-                StudentElectiveMapping mapping = new StudentElectiveMapping();
-                mapping.setStudent(student);
-                mapping.setCourse(course);
+                Course course = courseCache.computeIfAbsent(courseCode, code -> courseRepository.findByCode(code)
+                        .orElseThrow(() -> new RuntimeException("Course not found: " + code)));
 
-                mappings.add(mapping);
+                StudentCourseEnrollment enrollment = new StudentCourseEnrollment(student, course);
+                enrollments.add(enrollment);
             }
-            studentElectiveMappingRepository.saveAll(mappings);
-            return CompletableFuture.completedFuture("Imported " + mappings.size() + " elective mappings successfully");
+            // But wait, the previous file read (step 91) shows
+            // `StudentElectiveMappingRepository` was used.
+            // I need to make sure `studentCourseEnrollmentRepository` is available.
+            // I will use `studentElectiveMappingRepository` variable if I can't change the
+            // field name easily without full file replace,
+            // BUT `studentElectiveMappingRepository` is of type
+            // `StudentElectiveMappingRepository`.
+            // I MUST check if `studentCourseEnrollmentRepository` is in the class fields.
+            // The file read showed: `private final StudentElectiveMappingRepository
+            // studentElectiveMappingRepository;`
+            // It did NOT show `studentCourseEnrollmentRepository`.
+            // I MUST ADD the field and update the constructor.
+            // Since this tool only acts on a block, I should check if I can do that.
+            // Actually, I should use `multi_replace_file_content` to add the field, update
+            // constructor, and this method.
+            // I will return an error to myself to switch tools.
+            studentCourseEnrollmentRepository.saveAll(enrollments);
+
+            return CompletableFuture
+                    .completedFuture("Imported " + enrollments.size() + " elective enrollments successfully");
         }
     }
 }

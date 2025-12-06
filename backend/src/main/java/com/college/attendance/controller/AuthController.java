@@ -27,8 +27,8 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public AuthController(UserRepository userRepository, TeacherRepository teacherRepository, 
-                         StudentRepository studentRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthController(UserRepository userRepository, TeacherRepository teacherRepository,
+            StudentRepository studentRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.teacherRepository = teacherRepository;
         this.studentRepository = studentRepository;
@@ -42,8 +42,9 @@ public class AuthController {
 
         // Try finding by username (Roll No for students, Email for teachers/admin)
         Optional<User> userOptional = userRepository.findByUsername(loginRequest.getUsername());
-        
-        // If not found, try finding by Email (case insensitive via code logic, or lowercase match)
+
+        // If not found, try finding by Email (case insensitive via code logic, or
+        // lowercase match)
         if (userOptional.isEmpty()) {
             String email = loginRequest.getUsername().toLowerCase();
             Optional<Student> student = studentRepository.findByEmail(email);
@@ -65,14 +66,14 @@ public class AuthController {
         }
 
         User user = userOptional.get();
-        
+
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             System.out.println("Password mismatch for: " + user.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
         }
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole().toString());
-        
+
         // For teachers and students, return their entity ID, not user ID
         Long entityId = user.getId();
         if (user.getRole() == com.college.attendance.entity.Role.TEACHER) {
@@ -82,9 +83,10 @@ public class AuthController {
             Optional<Student> student = studentRepository.findByUser(user);
             entityId = student.map(Student::getId).orElse(user.getId());
         }
-        
-        LoginResponse response = new LoginResponse(token, user.getUsername(), user.getRole().toString(), entityId, user.isPasswordChanged());
-        
+
+        LoginResponse response = new LoginResponse(token, user.getUsername(), user.getRole().toString(), entityId,
+                user.isPasswordChanged());
+
         return ResponseEntity.ok(response);
     }
 
