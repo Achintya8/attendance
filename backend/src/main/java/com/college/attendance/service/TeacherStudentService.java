@@ -34,37 +34,49 @@ public class TeacherStudentService {
     public List<StudentDetailDTO> getTeacherStudents(Long teacherId, String courseIdStr, String section) {
         List<Student> students;
 
-        // Fetch teacher to get department
+        // Fetch teacher to get default department
         Teacher teacher = teacherRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found"));
         Long departmentId = teacher.getDepartment().getId();
 
-        // Check if a specific course is selected
+        // Check if a specific course is selected to override department
         if (courseIdStr != null && !courseIdStr.isEmpty()) {
             Long courseId = Long.parseLong(courseIdStr);
             Course course = courseRepository.findById(courseId).orElse(null);
 
-            if (course != null && course.getType() == CourseType.ELECTIVE) {
-                // For electives, fetch only enrolled students
-                List<Long> enrolledStudentIds = studentCourseEnrollmentRepository.findStudentIdsByCourseId(courseId);
-                students = studentRepository.findAllById(enrolledStudentIds);
+            if (course != null) {
+                // Use Course's Department instead of Teacher's Department
+                departmentId = course.getDepartment().getId();
 
-                // Apply section filter if present
-                if (section != null && !section.isEmpty()) {
-                    students = students.stream()
-                            .filter(s -> s.getSection().equals(section))
+                if (course.getType() == CourseType.ELECTIVE) {
+                    // For electives, fetch only enrolled students
+                    List<Long> enrolledStudentIds = studentCourseEnrollmentRepository
+                            .findStudentIdsByCourseId(courseId);
+                    students = studentRepository.findAllById(enrolledStudentIds);
+
+                    // Apply section filter if present
+                    if (section != null && !section.isEmpty() && !section.equalsIgnoreCase("MERGED")) {
+                        List<String> sections = Arrays.asList(section.split(","));
+                        students = students.stream()
+                                .filter(s -> sections.contains(s.getSection()))
+                                .collect(Collectors.toList());
+                    }
+
+                    return students.stream()
+                            .map(this::convertToStudentDetailDTO)
                             .collect(Collectors.toList());
                 }
-
-                return students.stream()
-                        .map(this::convertToStudentDetailDTO)
-                        .collect(Collectors.toList());
             }
         }
 
-        // Default behavior: Filter by Teacher's Department
-        if (section != null && !section.isEmpty()) {
-            students = studentRepository.findByDepartmentIdAndSection(departmentId, section);
+        // Default behavior: Filter by Department (Course's if present, else Teacher's)
+        if (section != null && !section.isEmpty() && !section.equalsIgnoreCase("MERGED")) {
+            if (section.contains(",")) {
+                List<String> sections = Arrays.asList(section.split(","));
+                students = studentRepository.findByDepartmentIdAndSectionIn(departmentId, sections);
+            } else {
+                students = studentRepository.findByDepartmentIdAndSection(departmentId, section);
+            }
         } else {
             students = studentRepository.findByDepartmentId(departmentId);
         }
