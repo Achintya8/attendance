@@ -28,6 +28,8 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     List<Student> findByDepartmentIdAndSection(Long departmentId, String section);
 
+    List<Student> findByDepartmentIdAndSectionIn(Long departmentId, List<String> sections);
+
     @org.springframework.data.jpa.repository.Query("SELECT DISTINCT s.section FROM Student s WHERE s.department.id = :departmentId ORDER BY s.section")
     List<String> findDistinctSectionsByDepartmentId(Long departmentId);
 }
