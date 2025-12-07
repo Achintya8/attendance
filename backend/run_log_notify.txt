@@ -87,3 +87,13 @@ Checking teacher: brp@gmail.com, User: brp@gmail.com
 Running DatabaseFixer...
 DatabaseFixer: Successfully added password_changed column.
 Data already seeded!
+2025-12-07T22:37:17.606+05:30  WARN 16056 --- [attendance-backend] [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=2h44m9s419ms344µs600ns).
+^CTerminate batch job (Y/N)? 2025-12-07T22:43:08.625+05:30  INFO 16056 --- [attendance-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-07T22:43:08.628+05:30  INFO 16056 --- [attendance-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-12-07T22:43:08.632+05:30  INFO 16056 --- [attendance-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  02:57 h
+[INFO] Finished at: 2025-12-07T22:43:08+05:30
+[INFO] ------------------------------------------------------------------------
