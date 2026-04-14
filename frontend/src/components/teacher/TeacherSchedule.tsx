@@ -40,6 +40,7 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
     const [schedule, setSchedule] = useState<ClassSession[]>([]);
     const [loading, setLoading] = useState(false);
     const [showAddClass, setShowAddClass] = useState(false);
+    const [showSectionDropdown, setShowSectionDropdown] = useState(false);
     const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
     const [newClassData, setNewClassData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -47,6 +48,8 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
         courseId: '',
         section: ''
     });
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [sessionToCancel, setSessionToCancel] = useState<number | null>(null);
 
     useEffect(() => {
         if (user?.id) {
@@ -99,20 +102,33 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
         }
     };
 
-    const cancelSession = async (sessionId: number) => {
-        if (!confirm('Are you sure you want to cancel this class?')) return;
+    const initCancelSession = (sessionId: number) => {
+        setSessionToCancel(sessionId);
+        setShowCancelModal(true);
+    };
+
+    const confirmCancelSession = async () => {
+        if (!sessionToCancel) return;
         try {
-            await api.put(`/api/teacher/session/${sessionId}`, { status: 'CANCELLED' });
-            fetchSchedule();
+            await api.delete(`/api/teacher/session/${sessionToCancel}`);
+            setSchedule(prev => prev.map(s => s.id === sessionToCancel ? { ...s, status: 'CANCELLED' } : s));
+            window.alert('Class cancelled successfully');
         } catch (error) {
             console.error('Error cancelling session:', error);
-            alert('Failed to cancel session');
+            window.alert('Failed to cancel session');
+        } finally {
+            setShowCancelModal(false);
+            setSessionToCancel(null);
+            fetchSchedule(); // Refresh to be sure
         }
     };
 
     return (
         <div>
+            {/* ... (existing JSX) ... */}
+
             <div className="flex justify-between items-center mb-6">
+                {/* ... (date picker & add button) ... */}
                 <input
                     type="date"
                     value={selectedDate}
@@ -162,7 +178,7 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
                                             <button onClick={() => setEditingSession(session)} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
                                                 Edit
                                             </button>
-                                            <button onClick={() => cancelSession(session.id)} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">
+                                            <button onClick={() => initCancelSession(session.id)} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">
                                                 Cancel
                                             </button>
                                         </>
@@ -174,11 +190,13 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
                 </div>
             )}
 
-            {/* Add Class Modal */}
+            {/* Add Class Modal (existing) */}
             {showAddClass && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAddClass(false)}>
+                    {/* ... (existing add class modal content) ... */}
                     <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
                         <h2 className="text-2xl font-bold mb-6">Add Extra Class</h2>
+                        {/* ... (existing form) ... */}
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Date</label>
@@ -215,17 +233,59 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Section</label>
-                                <select
-                                    value={newClassData.section}
-                                    onChange={(e) => setNewClassData({ ...newClassData, section: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded"
-                                >
-                                    <option value="">Select Section</option>
-                                    {sections.map(section => (
-                                        <option key={section} value={section}>{section}</option>
-                                    ))}
-                                </select>
+                                <label className="block text-sm font-medium mb-1">Section(s)</label>
+                                {/* ... (existing section dropdown) ... */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowSectionDropdown(!showSectionDropdown)}
+                                        className="w-full px-3 py-2 border rounded text-left bg-white flex justify-between items-center"
+                                    >
+                                        <span className={newClassData.section ? "text-gray-900" : "text-gray-500"}>
+                                            {newClassData.section || "Select Section(s)"}
+                                        </span>
+                                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+
+                                    {showSectionDropdown && (
+                                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto p-2">
+                                            {sections.length === 0 ? (
+                                                <p className="text-sm text-gray-500 p-2">No sections available</p>
+                                            ) : (
+                                                sections.map(section => (
+                                                    <label key={section} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={newClassData.section.split(',').includes(section)}
+                                                            onChange={(e) => {
+                                                                const currentSections = newClassData.section ? newClassData.section.split(',') : [];
+                                                                let updatedSections;
+                                                                if (e.target.checked) {
+                                                                    updatedSections = [...currentSections, section];
+                                                                } else {
+                                                                    updatedSections = currentSections.filter(s => s !== section);
+                                                                }
+                                                                setNewClassData({ ...newClassData, section: updatedSections.join(',') });
+                                                            }}
+                                                            className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                                                        />
+                                                        <span className="text-sm text-gray-700">{section}</span>
+                                                    </label>
+                                                ))
+                                            )}
+                                            <div className="border-t mt-2 pt-2">
+                                                <button
+                                                    onClick={() => setShowSectionDropdown(false)}
+                                                    className="w-full bg-blue-50 text-blue-600 py-1 rounded text-sm font-medium hover:bg-blue-100"
+                                                >
+                                                    Done
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Select multiple sections to combine them.</p>
                             </div>
                         </div>
                         <div className="flex gap-4 mt-6">
@@ -236,9 +296,10 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
                 </div>
             )}
 
-            {/* Edit Session Modal */}
+            {/* Edit Session Modal (existing) */}
             {editingSession && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setEditingSession(null)}>
+                    {/* ... (existing edit modal content) ... */}
                     <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
                         <h2 className="text-2xl font-bold mb-6">Edit Class Session</h2>
                         <div className="space-y-4">
@@ -278,6 +339,30 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
                         <div className="flex gap-4 mt-6">
                             <button onClick={saveSessionEdit} className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Save Changes</button>
                             <button onClick={() => setEditingSession(null)} className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Confirmation Modal */}
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCancelModal(false)}>
+                    <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-2xl font-bold mb-4 text-red-600">Cancel Class</h2>
+                        <p className="text-gray-600 mb-8">Are you sure you want to cancel this class? This action cannot be undone.</p>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={confirmCancelSession}
+                                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium"
+                            >
+                                Yes, Cancel Class
+                            </button>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 font-medium"
+                            >
+                                No, Keep It
+                            </button>
                         </div>
                     </div>
                 </div>

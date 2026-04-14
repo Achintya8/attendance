@@ -1,0 +1,93 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------------< com.college:attendance-backend >-------------------
+[INFO] Building attendance-backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.3:run (default-cli) > test-compile @ attendance-backend >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ attendance-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 8 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ attendance-backend ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ attendance-backend ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ attendance-backend ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] <<< spring-boot:3.2.3:run (default-cli) < test-compile @ attendance-backend <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.3:run (default-cli) @ attendance-backend ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.3)
+
+2025-12-07T22:49:21.802+05:30  INFO 6216 --- [attendance-backend] [           main] c.c.attendance.AttendanceApplication     : Starting AttendanceApplication using Java 23.0.2 with PID 6216 (C:\Users\achin\Downloads\attendance-app\backend\target\classes started by achin in C:\Users\achin\Downloads\attendance-app\backend)
+2025-12-07T22:49:21.805+05:30  INFO 6216 --- [attendance-backend] [           main] c.c.attendance.AttendanceApplication     : No active profile set, falling back to 1 default profile: "default"
+2025-12-07T22:49:23.132+05:30  INFO 6216 --- [attendance-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-07T22:49:23.242+05:30  INFO 6216 --- [attendance-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 104 ms. Found 11 JPA repository interfaces.
+2025-12-07T22:49:24.226+05:30  INFO 6216 --- [attendance-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2025-12-07T22:49:24.239+05:30  INFO 6216 --- [attendance-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-07T22:49:24.239+05:30  INFO 6216 --- [attendance-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2025-12-07T22:49:24.325+05:30  INFO 6216 --- [attendance-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-07T22:49:24.327+05:30  INFO 6216 --- [attendance-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2440 ms
+2025-12-07T22:49:24.668+05:30  INFO 6216 --- [attendance-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-12-07T22:49:25.663+05:30  INFO 6216 --- [attendance-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@3c09a350
+2025-12-07T22:49:25.663+05:30  INFO 6216 --- [attendance-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-12-07T22:49:25.779+05:30  INFO 6216 --- [attendance-backend] [           main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.22.3 by Redgate
+2025-12-07T22:49:25.779+05:30  INFO 6216 --- [attendance-backend] [           main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2025-12-07T22:49:25.779+05:30  INFO 6216 --- [attendance-backend] [           main] o.f.c.internal.license.VersionPrinter    : 
+2025-12-07T22:49:25.939+05:30  INFO 6216 --- [attendance-backend] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5433/attendance_db (PostgreSQL 15.14)
+2025-12-07T22:49:27.057+05:30  INFO 6216 --- [attendance-backend] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 7 migrations (execution time 00:00.424s)
+2025-12-07T22:49:27.558+05:30  INFO 6216 --- [attendance-backend] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 7
+2025-12-07T22:49:27.564+05:30  INFO 6216 --- [attendance-backend] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2025-12-07T22:49:27.714+05:30  INFO 6216 --- [attendance-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-07T22:49:27.786+05:30  INFO 6216 --- [attendance-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2025-12-07T22:49:27.823+05:30  INFO 6216 --- [attendance-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-07T22:49:28.069+05:30  INFO 6216 --- [attendance-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-07T22:49:28.210+05:30  WARN 6216 --- [attendance-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-07T22:49:29.727+05:30  INFO 6216 --- [attendance-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-07T22:49:34.103+05:30  INFO 6216 --- [attendance-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-07T22:49:34.735+05:30  INFO 6216 --- [attendance-backend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-12-07T22:49:35.392+05:30  INFO 6216 --- [attendance-backend] [           main] c.c.attendance.config.FirebaseConfig     : Firebase initialized successfully for FCM notifications.
+2025-12-07T22:49:35.684+05:30  WARN 6216 --- [attendance-backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-12-07T22:49:35.742+05:30  WARN 6216 --- [attendance-backend] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: b0a44019-45fd-4b74-aa6b-c8f5639cfa63
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2025-12-07T22:49:36.210+05:30  INFO 6216 --- [attendance-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoint(s) beneath base path '/actuator'
+2025-12-07T22:49:36.295+05:30  INFO 6216 --- [attendance-backend] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@2b82781d, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@6b0dc462, org.springframework.security.web.context.SecurityContextHolderFilter@13809190, org.springframework.security.web.header.HeaderWriterFilter@75ad8ca8, org.springframework.web.filter.CorsFilter@3415d6e, org.springframework.security.web.authentication.logout.LogoutFilter@7aadd290, com.college.attendance.security.JwtAuthenticationFilter@2f4d01b6, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@205f573e, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@35ab67d4, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@71676e5f, org.springframework.security.web.session.SessionManagementFilter@7de922ba, org.springframework.security.web.access.ExceptionTranslationFilter@1886e8b9, org.springframework.security.web.access.intercept.AuthorizationFilter@73c842dc]
+2025-12-07T22:49:36.815+05:30  INFO 6216 --- [attendance-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path ''
+2025-12-07T22:49:36.833+05:30  INFO 6216 --- [attendance-backend] [           main] c.c.attendance.AttendanceApplication     : Started AttendanceApplication in 15.484 seconds (process running for 16.036)
+Data already seeded!
+Running DatabaseFixer...
+DatabaseFixer: Successfully added password_changed column.
+UserFixer: Found 2 total teachers in database.
+Checking teacher: teacher@college.edu, User: teacher
+Checking teacher: mcateacher@college.edu, User: mcateacher
+2025-12-07T22:53:30.746+05:30  INFO 6216 --- [attendance-backend] [nio-8081-exec-3] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-07T22:53:30.746+05:30  INFO 6216 --- [attendance-backend] [nio-8081-exec-3] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-07T22:53:30.748+05:30  INFO 6216 --- [attendance-backend] [nio-8081-exec-3] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+^CTerminate batch job (Y/N)? 2025-12-07T22:55:33.431+05:30  INFO 6216 --- [attendance-backend] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-12-07T22:55:33.435+05:30  INFO 6216 --- [attendance-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2025-12-07T22:55:33.438+05:30  INFO 6216 --- [attendance-backend] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  06:16 min
+[INFO] Finished at: 2025-12-07T22:55:33+05:30
+[INFO] ------------------------------------------------------------------------

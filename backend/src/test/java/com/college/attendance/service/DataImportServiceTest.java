@@ -28,14 +28,24 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DataImportServiceTest {
 
-    @Mock private StudentRepository studentRepository;
-    @Mock private TeacherRepository teacherRepository;
-    @Mock private DepartmentRepository departmentRepository;
-    @Mock private CourseRepository courseRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private MasterTimetableRepository masterTimetableRepository;
-    @Mock private StudentElectiveMappingRepository studentElectiveMappingRepository;
-    @Mock private PasswordEncoder passwordEncoder;
+    @Mock
+    private StudentRepository studentRepository;
+    @Mock
+    private TeacherRepository teacherRepository;
+    @Mock
+    private DepartmentRepository departmentRepository;
+    @Mock
+    private CourseRepository courseRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private MasterTimetableRepository masterTimetableRepository;
+    @Mock
+    private StudentElectiveMappingRepository studentElectiveMappingRepository;
+    @Mock
+    private StudentCourseEnrollmentRepository studentCourseEnrollmentRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     private DataImportService dataImportService;
 
@@ -44,8 +54,7 @@ class DataImportServiceTest {
         dataImportService = new DataImportService(
                 studentRepository, teacherRepository, departmentRepository,
                 courseRepository, userRepository, masterTimetableRepository,
-                studentElectiveMappingRepository, passwordEncoder
-        );
+                studentElectiveMappingRepository, studentCourseEnrollmentRepository, passwordEncoder);
     }
 
     @Test
