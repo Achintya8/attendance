@@ -63,7 +63,7 @@ class TeacherStudentServiceTest {
         student.setId(studentId);
         student.setName("Student 1");
         student.setDepartment(dept);
-        student.setAttendancePercentage(0.0); // Ignored by service, calculated dynamically
+
 
         Course course1 = new Course();
         course1.setId(courseId1);

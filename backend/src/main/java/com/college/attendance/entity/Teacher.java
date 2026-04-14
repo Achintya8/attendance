@@ -23,8 +23,6 @@ public class Teacher {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "fcm_token")
-    private String fcmToken; // Firebase Cloud Messaging token for push notifications
 
     public Teacher() {}
 
@@ -51,6 +49,4 @@ public class Teacher {
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
-    public String getFcmToken() { return fcmToken; }
-    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
 }

@@ -8,6 +8,8 @@ import com.college.attendance.service.AttendanceService;
 import com.college.attendance.service.TeacherStudentService;
 import com.college.attendance.service.TimetableService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -95,8 +97,28 @@ public class TeacherController {
     public ResponseEntity<List<StudentDetailDTO>> getMyStudents(
             @RequestParam("teacherId") Long teacherId,
             @RequestParam(value = "courseId", required = false) String courseId,
-            @RequestParam(value = "section", required = false) String section) {
-        return ResponseEntity.ok(teacherStudentService.getTeacherStudents(teacherId, courseId, section));
+            @RequestParam(value = "section", required = false) String section,
+            @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(teacherStudentService.getTeacherStudents(teacherId, courseId, section, from, to));
+    }
+
+    @GetMapping("/students/export")
+    public ResponseEntity<byte[]> exportStudentsCsv(
+            @RequestParam("teacherId") Long teacherId,
+            @RequestParam(value = "courseId", required = false) String courseId,
+            @RequestParam(value = "section", required = false) String section,
+            @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        byte[] csv = teacherStudentService.exportStudentsCsv(teacherId, courseId, section, from, to);
+        String filename = "attendance_report"
+                + (from != null ? "_" + from : "")
+                + (to != null ? "_to_" + to : "")
+                + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv);
     }
 
     @GetMapping("/students/{id}")

@@ -3,35 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 interface ClassSession {
-    id: number;
-    date: string;
-    period: number;
+    id: number; date: string; period: number;
     course: { id: number; name: string; code: string };
     teacher: { id: number; name: string };
-    section: string;
-    type: string;
-    status: string;
+    section: string; type: string; status: string;
 }
-
-interface Course {
-    id: number;
-    code: string;
-    name: string;
-}
-
-interface TeacherScheduleProps {
-    user: any;
-    courses: Course[];
-    sections: string[];
-}
+interface Course { id: number; code: string; name: string; }
+interface TeacherScheduleProps { user: any; courses: Course[]; sections: string[]; }
 
 const PERIOD_TIMES: { [key: number]: string } = {
-    1: "09:00 - 10:00",
-    2: "10:00 - 11:00",
-    3: "11:30 - 12:30",
-    4: "12:30 - 01:30",
-    5: "02:30 - 03:30",
-    6: "03:30 - 04:30"
+    1: "09:00 – 10:00", 2: "10:00 – 11:00", 3: "11:30 – 12:30",
+    4: "12:30 – 01:30", 5: "02:30 – 03:30", 6: "03:30 – 04:30"
 };
 
 const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sections }) => {
@@ -39,329 +21,287 @@ const TeacherSchedule: React.FC<TeacherScheduleProps> = ({ user, courses, sectio
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [schedule, setSchedule] = useState<ClassSession[]>([]);
     const [loading, setLoading] = useState(false);
-    const [showAddClass, setShowAddClass] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [showSectionDropdown, setShowSectionDropdown] = useState(false);
     const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
-    const [newClassData, setNewClassData] = useState({
-        date: new Date().toISOString().split('T')[0],
-        period: 1,
-        courseId: '',
-        section: ''
-    });
-    const [showCancelModal, setShowCancelModal] = useState(false);
-    const [sessionToCancel, setSessionToCancel] = useState<number | null>(null);
+    const [newClassData, setNewClassData] = useState({ date: new Date().toISOString().split('T')[0], period: 1, courseId: '', section: '' });
+    const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
 
     useEffect(() => {
-        if (user?.id) {
-            fetchSchedule();
-        }
+        if (user?.id) fetchSchedule();
     }, [selectedDate, user?.id]);
 
     const fetchSchedule = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const response = await api.get(`/api/teacher/schedule?date=${selectedDate}&teacherId=${user?.id}`);
-            setSchedule(response.data);
-        } catch (error) {
-            console.error('Error fetching schedule:', error);
-        } finally {
-            setLoading(false);
-        }
+            const r = await api.get(`/api/teacher/schedule?date=${selectedDate}&teacherId=${user?.id}`);
+            setSchedule(r.data);
+        } catch (e) { console.error(e); }
+        setLoading(false);
     };
 
     const handleAddClass = async () => {
-        if (!newClassData.courseId || !newClassData.section) {
-            alert("Please select a course and section");
-            return;
-        }
+        if (!newClassData.courseId || !newClassData.section) { alert('Select course and section'); return; }
+        setActionLoading(true);
         try {
-            // Include teacherId in the request body
-            const payload = {
-                ...newClassData,
-                teacherId: user?.id
-            };
-            await api.post('/api/teacher/session', payload);
-            setShowAddClass(false);
+            await api.post('/api/teacher/session', { ...newClassData, teacherId: user?.id });
+            setShowAddModal(false);
             setNewClassData({ date: new Date().toISOString().split('T')[0], period: 1, courseId: '', section: '' });
             fetchSchedule();
-        } catch (error) {
-            console.error('Error adding class:', error);
-            alert('Failed to add class');
-        }
+        } catch (e) { alert('Failed to add class'); }
+        setActionLoading(false);
     };
 
-    const saveSessionEdit = async () => {
+    const saveEdit = async () => {
         if (!editingSession) return;
+        setActionLoading(true);
         try {
             await api.put(`/api/teacher/session/${editingSession.id}`, editingSession);
             setEditingSession(null);
             fetchSchedule();
-        } catch (error) {
-            console.error('Error updating session:', error);
-            alert('Failed to update session');
-        }
+        } catch (e) { alert('Failed to update'); }
+        setActionLoading(false);
     };
 
-    const initCancelSession = (sessionId: number) => {
-        setSessionToCancel(sessionId);
-        setShowCancelModal(true);
-    };
-
-    const confirmCancelSession = async () => {
-        if (!sessionToCancel) return;
+    const confirmCancel = async () => {
+        if (!cancelConfirmId) return;
+        setActionLoading(true);
         try {
-            await api.delete(`/api/teacher/session/${sessionToCancel}`);
-            setSchedule(prev => prev.map(s => s.id === sessionToCancel ? { ...s, status: 'CANCELLED' } : s));
-            window.alert('Class cancelled successfully');
-        } catch (error) {
-            console.error('Error cancelling session:', error);
-            window.alert('Failed to cancel session');
-        } finally {
-            setShowCancelModal(false);
-            setSessionToCancel(null);
-            fetchSchedule(); // Refresh to be sure
-        }
+            await api.delete(`/api/teacher/session/${cancelConfirmId}`);
+            fetchSchedule();
+        } catch (e) { alert('Failed to cancel'); }
+        setCancelConfirmId(null);
+        setActionLoading(false);
     };
+
+    // Days for quick date picker
+    const getDays = () => {
+        const days = [];
+        for (let i = -1; i <= 5; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() + i);
+            days.push({ iso: d.toISOString().split('T')[0], day: d.toLocaleDateString('en', { weekday: 'short' }), date: d.getDate() });
+        }
+        return days;
+    };
+
+    const statusBadge = (status: string) => {
+        if (status === 'SCHEDULED') return { bg: 'rgba(34,197,94,0.12)', color: '#4ade80', border: 'rgba(34,197,94,0.25)', label: 'Scheduled' };
+        if (status === 'CANCELLED') return { bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: 'rgba(239,68,68,0.25)', label: 'Cancelled' };
+        return { bg: 'rgba(100,116,139,0.12)', color: '#94a3b8', border: 'rgba(100,116,139,0.25)', label: status };
+    };
+
+    const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+            <div className="w-full rounded-t-3xl p-6 pb-8" style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.08)' }} onClick={e => e.stopPropagation()}>
+                <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-5" />
+                <h2 className="text-lg font-bold text-white mb-4">{title}</h2>
+                {children}
+            </div>
+        </div>
+    );
 
     return (
-        <div>
-            {/* ... (existing JSX) ... */}
-
-            <div className="flex justify-between items-center mb-6">
-                {/* ... (date picker & add button) ... */}
-                <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="border rounded-lg px-4 py-2"
+        <div className="fade-in">
+            {/* Horizontal date scroller */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-0" style={{ scrollbarWidth: 'none' }}>
+                {getDays().map(({ iso, day, date }) => {
+                    const active = iso === selectedDate;
+                    return (
+                        <button key={iso} onClick={() => setSelectedDate(iso)} className="flex-shrink-0 flex flex-col items-center py-2 px-3 rounded-2xl transition-all press-effect" style={active
+                            ? { background: 'linear-gradient(135deg, #6366f1, #818cf8)', minWidth: 52, boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }
+                            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', minWidth: 52 }
+                        }>
+                            <span className="text-xs font-medium" style={{ color: active ? '#c7d2fe' : '#64748b' }}>{day}</span>
+                            <span className="text-base font-bold" style={{ color: active ? 'white' : '#e2e8f0' }}>{date}</span>
+                        </button>
+                    );
+                })}
+                {/* Custom date input */}
+                <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                    className="flex-shrink-0 rounded-2xl px-3 text-xs text-slate-400 press-effect"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', minWidth: 44 }}
                 />
-                <button onClick={() => setShowAddClass(true)} className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-                    Add Extra Class
-                </button>
             </div>
 
+            {/* Add Class FAB */}
+            <button onClick={() => setShowAddModal(true)} className="w-full mb-4 py-3 rounded-2xl flex items-center justify-center gap-2 font-semibold text-sm press-effect"
+                style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8' }}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                Add Extra Class
+            </button>
+
+            {/* Sessions */}
             {loading ? (
-                <p className="text-center py-12 text-gray-500">Loading schedule...</p>
+                <div className="space-y-3">
+                    {[1, 2].map(i => <div key={i} className="shimmer h-28 rounded-2xl" />)}
+                </div>
             ) : schedule.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <p className="text-gray-500 text-lg">No classes scheduled for this date</p>
-                    <p className="text-gray-400 mt-2">Click "Add Class" to create a new session</p>
+                <div className="card p-8 text-center">
+                    <p className="text-3xl mb-2">📅</p>
+                    <p className="text-slate-400 text-sm">No classes for this day</p>
+                    <p className="text-slate-600 text-xs mt-1">Tap "Add Extra Class" to create one</p>
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {schedule.map((session) => (
-                        <div key={session.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                                            Period {session.period} ({PERIOD_TIMES[session.period] || 'Unknown Time'})
-                                        </span>
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${session.status === 'SCHEDULED' ? 'bg-green-100 text-green-800' :
-                                            session.status === 'CANCELLED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                                            {session.status}
-                                        </span>
-                                        {session.type !== 'REGULAR' && (
-                                            <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">{session.type}</span>
-                                        )}
-                                    </div>
-                                    <h3 className="text-xl font-semibold text-gray-800">{session.course.name}</h3>
-                                    <p className="text-gray-600">Course Code: {session.course.code}</p>
-                                    <p className="text-gray-600">Section: {session.section}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    {session.status === 'SCHEDULED' && (
-                                        <>
-                                            <button onClick={() => navigate('/attendance', { state: { session } })} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm">
-                                                Take Attendance
-                                            </button>
-                                            <button onClick={() => setEditingSession(session)} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
-                                                Edit
-                                            </button>
-                                            <button onClick={() => initCancelSession(session.id)} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">
-                                                Cancel
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Add Class Modal (existing) */}
-            {showAddClass && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAddClass(false)}>
-                    {/* ... (existing add class modal content) ... */}
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-2xl font-bold mb-6">Add Extra Class</h2>
-                        {/* ... (existing form) ... */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Date</label>
-                                <input
-                                    type="date"
-                                    value={newClassData.date}
-                                    onChange={(e) => setNewClassData({ ...newClassData, date: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Period</label>
-                                <select
-                                    value={newClassData.period}
-                                    onChange={(e) => setNewClassData({ ...newClassData, period: parseInt(e.target.value) })}
-                                    className="w-full px-3 py-2 border rounded"
-                                >
-                                    {Object.entries(PERIOD_TIMES).map(([period, time]) => (
-                                        <option key={period} value={period}>Period {period} ({time})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Course</label>
-                                <select
-                                    value={newClassData.courseId}
-                                    onChange={(e) => setNewClassData({ ...newClassData, courseId: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded"
-                                >
-                                    <option value="">Select Course</option>
-                                    {courses.map(course => (
-                                        <option key={course.id} value={course.id}>{course.name} ({course.code})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Section(s)</label>
-                                {/* ... (existing section dropdown) ... */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setShowSectionDropdown(!showSectionDropdown)}
-                                        className="w-full px-3 py-2 border rounded text-left bg-white flex justify-between items-center"
-                                    >
-                                        <span className={newClassData.section ? "text-gray-900" : "text-gray-500"}>
-                                            {newClassData.section || "Select Section(s)"}
-                                        </span>
-                                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-
-                                    {showSectionDropdown && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto p-2">
-                                            {sections.length === 0 ? (
-                                                <p className="text-sm text-gray-500 p-2">No sections available</p>
-                                            ) : (
-                                                sections.map(section => (
-                                                    <label key={section} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={newClassData.section.split(',').includes(section)}
-                                                            onChange={(e) => {
-                                                                const currentSections = newClassData.section ? newClassData.section.split(',') : [];
-                                                                let updatedSections;
-                                                                if (e.target.checked) {
-                                                                    updatedSections = [...currentSections, section];
-                                                                } else {
-                                                                    updatedSections = currentSections.filter(s => s !== section);
-                                                                }
-                                                                setNewClassData({ ...newClassData, section: updatedSections.join(',') });
-                                                            }}
-                                                            className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
-                                                        />
-                                                        <span className="text-sm text-gray-700">{section}</span>
-                                                    </label>
-                                                ))
-                                            )}
-                                            <div className="border-t mt-2 pt-2">
-                                                <button
-                                                    onClick={() => setShowSectionDropdown(false)}
-                                                    className="w-full bg-blue-50 text-blue-600 py-1 rounded text-sm font-medium hover:bg-blue-100"
-                                                >
-                                                    Done
-                                                </button>
-                                            </div>
+                <div className="space-y-3">
+                    {schedule.map(session => {
+                        const badge = statusBadge(session.status);
+                        return (
+                            <div key={session.id} className="card-elevated p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs font-semibold rounded-lg px-2 py-0.5" style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc' }}>
+                                                P{session.period} · {PERIOD_TIMES[session.period]}
+                                            </span>
+                                            <span className="text-xs rounded-lg px-2 py-0.5" style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                                                {badge.label}
+                                            </span>
                                         </div>
-                                    )}
+                                        <h3 className="font-semibold text-white text-sm">{session.course.name}</h3>
+                                        <p className="text-xs text-slate-500 mt-0.5">{session.course.code} · Section {session.section}</p>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">Select multiple sections to combine them.</p>
+
+                                {session.status === 'SCHEDULED' && (
+                                    <div className="flex gap-2 mt-3">
+                                        <button onClick={() => navigate('/attendance', { state: { session } })}
+                                            className="flex-1 py-2 rounded-xl text-xs font-bold press-effect"
+                                            style={{ background: 'linear-gradient(135deg, #4ade80, #16a34a)', color: 'white', boxShadow: '0 2px 8px rgba(74,222,128,0.3)' }}>
+                                            Take Attendance
+                                        </button>
+                                        <button onClick={() => setEditingSession(session)}
+                                            className="px-4 py-2 rounded-xl text-xs font-semibold press-effect"
+                                            style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)' }}>
+                                            Edit
+                                        </button>
+                                        <button onClick={() => setCancelConfirmId(session.id)}
+                                            className="px-4 py-2 rounded-xl text-xs font-semibold press-effect"
+                                            style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                        <div className="flex gap-4 mt-6">
-                            <button onClick={handleAddClass} className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700">Add Class</button>
-                            <button onClick={() => setShowAddClass(false)} className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600">Cancel</button>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
             )}
 
-            {/* Edit Session Modal (existing) */}
-            {editingSession && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setEditingSession(null)}>
-                    {/* ... (existing edit modal content) ... */}
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-2xl font-bold mb-6">Edit Class Session</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Course</label>
-                                <input type="text" value={editingSession.course.name} disabled className="w-full px-3 py-2 border rounded bg-gray-100" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Date</label>
-                                <input type="date" value={editingSession.date} onChange={(e) => setEditingSession({ ...editingSession, date: e.target.value })} className="w-full px-3 py-2 border rounded" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Period</label>
-                                <select
-                                    value={editingSession.period}
-                                    onChange={(e) => setEditingSession({ ...editingSession, period: parseInt(e.target.value) })}
-                                    className="w-full px-3 py-2 border rounded"
-                                >
-                                    {Object.entries(PERIOD_TIMES).map(([period, time]) => (
-                                        <option key={period} value={period}>Period {period} ({time})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Section</label>
-                                <input type="text" value={editingSession.section} onChange={(e) => setEditingSession({ ...editingSession, section: e.target.value })} className="w-full px-3 py-2 border rounded" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Status</label>
-                                <select value={editingSession.status} onChange={(e) => setEditingSession({ ...editingSession, status: e.target.value })} className="w-full px-3 py-2 border rounded">
-                                    <option value="SCHEDULED">Scheduled</option>
-                                    <option value="COMPLETED">Completed</option>
-                                    <option value="CANCELLED">Cancelled</option>
-                                </select>
+            {/* Add Class Modal */}
+            {showAddModal && (
+                <Modal title="Add Extra Class" onClose={() => setShowAddModal(false)}>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Date</label>
+                            <input type="date" value={newClassData.date} onChange={e => setNewClassData({ ...newClassData, date: e.target.value })} className="input-field" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Period</label>
+                            <select value={newClassData.period} onChange={e => setNewClassData({ ...newClassData, period: parseInt(e.target.value) })} className="input-field">
+                                {Object.entries(PERIOD_TIMES).map(([p, t]) => <option key={p} value={p} style={{ background: '#1a1a2e' }}>Period {p} ({t})</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Course</label>
+                            <select value={newClassData.courseId} onChange={e => setNewClassData({ ...newClassData, courseId: e.target.value })} className="input-field">
+                                <option value="" style={{ background: '#1a1a2e' }}>Select Course</option>
+                                {courses.map(c => <option key={c.id} value={c.id} style={{ background: '#1a1a2e' }}>{c.name} ({c.code})</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Section(s)</label>
+                            <div className="relative">
+                                <button onClick={() => setShowSectionDropdown(!showSectionDropdown)} className="input-field text-left flex justify-between items-center">
+                                    <span className={newClassData.section ? 'text-slate-200' : 'text-slate-500'}>{newClassData.section || 'Select Section(s)'}</span>
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                {showSectionDropdown && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 rounded-2xl overflow-hidden z-10 shadow-2xl" style={{ background: '#252540', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                        {sections.map(sec => (
+                                            <label key={sec} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 cursor-pointer">
+                                                <input type="checkbox"
+                                                    checked={newClassData.section.split(',').filter(Boolean).includes(sec)}
+                                                    onChange={e => {
+                                                        const curr = newClassData.section ? newClassData.section.split(',').filter(Boolean) : [];
+                                                        const updated = e.target.checked ? [...curr, sec] : curr.filter(s => s !== sec);
+                                                        setNewClassData({ ...newClassData, section: updated.join(',') });
+                                                    }}
+                                                    className="w-4 h-4 rounded accent-indigo-500"
+                                                />
+                                                <span className="text-sm text-slate-200">{sec}</span>
+                                            </label>
+                                        ))}
+                                        <button onClick={() => setShowSectionDropdown(false)} className="w-full py-2 text-xs font-semibold text-indigo-400" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>Done</button>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <div className="flex gap-4 mt-6">
-                            <button onClick={saveSessionEdit} className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Save Changes</button>
-                            <button onClick={() => setEditingSession(null)} className="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Cancel Confirmation Modal */}
-            {showCancelModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowCancelModal(false)}>
-                    <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                        <h2 className="text-2xl font-bold mb-4 text-red-600">Cancel Class</h2>
-                        <p className="text-gray-600 mb-8">Are you sure you want to cancel this class? This action cannot be undone.</p>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={confirmCancelSession}
-                                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium"
-                            >
-                                Yes, Cancel Class
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setShowAddModal(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold press-effect" style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}>Cancel</button>
+                            <button onClick={handleAddClass} disabled={actionLoading} className="flex-1 py-3 rounded-xl text-sm font-bold press-effect" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: 'white' }}>
+                                {actionLoading ? 'Adding...' : 'Add Class'}
                             </button>
-                            <button
-                                onClick={() => setShowCancelModal(false)}
-                                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 font-medium"
-                            >
-                                No, Keep It
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Edit Modal */}
+            {editingSession && (
+                <Modal title="Edit Session" onClose={() => setEditingSession(null)}>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Course</label>
+                            <input type="text" value={editingSession.course.name} disabled className="input-field opacity-50" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Date</label>
+                            <input type="date" value={editingSession.date} onChange={e => setEditingSession({ ...editingSession, date: e.target.value })} className="input-field" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Period</label>
+                            <select value={editingSession.period} onChange={e => setEditingSession({ ...editingSession, period: parseInt(e.target.value) })} className="input-field">
+                                {Object.entries(PERIOD_TIMES).map(([p, t]) => <option key={p} value={p} style={{ background: '#1a1a2e' }}>Period {p} ({t})</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Section</label>
+                            <input type="text" value={editingSession.section} onChange={e => setEditingSession({ ...editingSession, section: e.target.value })} className="input-field" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-1.5">Status</label>
+                            <select value={editingSession.status} onChange={e => setEditingSession({ ...editingSession, status: e.target.value })} className="input-field">
+                                <option value="SCHEDULED" style={{ background: '#1a1a2e' }}>Scheduled</option>
+                                <option value="COMPLETED" style={{ background: '#1a1a2e' }}>Completed</option>
+                                <option value="CANCELLED" style={{ background: '#1a1a2e' }}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={() => setEditingSession(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold press-effect" style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}>Cancel</button>
+                            <button onClick={saveEdit} disabled={actionLoading} className="flex-1 py-3 rounded-xl text-sm font-bold press-effect" style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: 'white' }}>
+                                {actionLoading ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Cancel Confirm Modal */}
+            {cancelConfirmId && (
+                <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+                    <div className="w-full rounded-t-3xl p-6 pb-8" style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-5" />
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                            <svg width="24" height="24" fill="none" stroke="#f87171" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                        <h2 className="text-lg font-bold text-white text-center mb-2">Cancel Class?</h2>
+                        <p className="text-sm text-slate-400 text-center mb-6">This cannot be undone.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setCancelConfirmId(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}>Keep It</button>
+                            <button onClick={confirmCancel} disabled={actionLoading} className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: 'white' }}>
+                                {actionLoading ? 'Cancelling...' : 'Yes, Cancel'}
                             </button>
                         </div>
                     </div>

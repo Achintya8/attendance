@@ -5,6 +5,9 @@ import com.college.attendance.entity.*;
 import com.college.attendance.repository.*;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,10 @@ public class TeacherStudentService {
     }
 
     public List<StudentDetailDTO> getTeacherStudents(Long teacherId, String courseIdStr, String section) {
+        return getTeacherStudents(teacherId, courseIdStr, section, null, null);
+    }
+
+    public List<StudentDetailDTO> getTeacherStudents(Long teacherId, String courseIdStr, String section, LocalDate from, LocalDate to) {
         List<Student> students;
 
         // Fetch teacher to get default department
@@ -67,7 +74,7 @@ public class TeacherStudentService {
 
                     return students.stream()
                             .sorted(Comparator.comparing(Student::getName, String.CASE_INSENSITIVE_ORDER))
-                            .map(s -> convertToStudentDetailDTO(s, courseId))
+                            .map(s -> convertToStudentDetailDTO(s, courseId, from, to))
                             .collect(Collectors.toList());
                 }
             }
@@ -89,7 +96,7 @@ public class TeacherStudentService {
 
         return students.stream()
                 .sorted(Comparator.comparing(Student::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(s -> convertToStudentDetailDTO(s, courseFilterId))
+                .map(s -> convertToStudentDetailDTO(s, courseFilterId, from, to))
                 .collect(Collectors.toList());
     }
 
@@ -128,7 +135,39 @@ public class TeacherStudentService {
     public StudentDetailDTO getStudentDetail(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
-        return convertToStudentDetailDTO(student, null);
+        return convertToStudentDetailDTO(student, null, null, null);
+    }
+
+    /**
+     * Generates a CSV byte array covering all students visible to a teacher,
+     * optionally filtered by course, section, and date range.
+     */
+    public byte[] exportStudentsCsv(Long teacherId, String courseIdStr, String section, LocalDate from, LocalDate to) {
+        List<StudentDetailDTO> students = getTeacherStudents(teacherId, courseIdStr, section, from, to);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintWriter pw = new PrintWriter(baos);
+
+        // Header
+        String dateRange = (from != null && to != null) ? (from + " to " + to) : "All Time";
+        pw.println("Attendance Report - " + dateRange);
+        pw.println("Roll No,Name,Department,Section,Semester,Batch,Present,Absent,On Duty,Medical,Total,Attendance %");
+
+        for (StudentDetailDTO s : students) {
+            Map<String, Long> bd = s.getAttendanceBreakdown();
+            long p = bd.getOrDefault("P", 0L);
+            long a = bd.getOrDefault("A", 0L);
+            long o = bd.getOrDefault("O", 0L);
+            long m = bd.getOrDefault("M", 0L);
+            long total = p + a + o + m;
+            pw.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\",%d,%d,%d,%d,%d,%.1f%n",
+                    s.getRollNum(), s.getName(), s.getDepartment(), s.getSection(),
+                    s.getSemester(), s.getCurrentBatch(),
+                    p, a, o, m, total, s.getAttendancePercentage());
+        }
+
+        pw.flush();
+        return baos.toByteArray();
     }
 
     public List<Attendance> getStudentAttendanceHistory(Long studentId) {
@@ -139,29 +178,33 @@ public class TeacherStudentService {
         List<Student> students = studentRepository.findByNameContainingIgnoreCaseOrRollNumContainingIgnoreCase(query,
                 query);
         return students.stream()
-                .map(s -> convertToStudentDetailDTO(s, null))
+                .map(s -> convertToStudentDetailDTO(s, null, null, null))
                 .collect(Collectors.toList());
     }
 
-    private StudentDetailDTO convertToStudentDetailDTO(Student student, Long courseId) {
-        List<Attendance> attendanceRecords = attendanceRepository.findByStudentId(student.getId());
+    private StudentDetailDTO convertToStudentDetailDTO(Student student, Long courseId, LocalDate from, LocalDate to) {
+        List<Attendance> attendanceRecords;
 
-        // Filter by course if provided
-        if (courseId != null) {
-            attendanceRecords = attendanceRecords.stream()
-                    .filter(a -> a.getSession().getCourse().getId().equals(courseId))
-                    .collect(Collectors.toList());
+        if (from != null && to != null) {
+            if (courseId != null) {
+                attendanceRecords = attendanceRepository.findByStudentIdAndCourseIdAndDateRange(student.getId(), courseId, from, to);
+            } else {
+                attendanceRecords = attendanceRepository.findByStudentIdAndDateRange(student.getId(), from, to);
+            }
+        } else {
+            attendanceRecords = attendanceRepository.findByStudentId(student.getId());
+            if (courseId != null) {
+                attendanceRecords = attendanceRecords.stream()
+                        .filter(a -> a.getSession().getCourse().getId().equals(courseId))
+                        .collect(Collectors.toList());
+            }
         }
 
-        // Calculate attendance stats
         Map<String, Long> breakdown = attendanceRecords.stream()
-                .collect(Collectors.groupingBy(
-                        a -> a.getStatus().toString(),
-                        Collectors.counting()));
+                .collect(Collectors.groupingBy(a -> a.getStatus().toString(), Collectors.counting()));
 
         long totalClasses = attendanceRecords.size();
-        long presentCount = breakdown.getOrDefault("P", 0L) + breakdown.getOrDefault("O", 0L); // P + On Duty count as
-                                                                                               // present
+        long presentCount = breakdown.getOrDefault("P", 0L) + breakdown.getOrDefault("O", 0L);
         double percentage = totalClasses > 0 ? (presentCount * 100.0 / totalClasses) : 0.0;
 
         return new StudentDetailDTO(
@@ -174,7 +217,7 @@ public class TeacherStudentService {
                 student.getSection(),
                 student.getAdmissionYear(),
                 student.getCurrentBatch(),
-                Math.round(percentage * 100.0) / 100.0, // Round to 2 decimals
+                Math.round(percentage * 100.0) / 100.0,
                 breakdown);
     }
 }
