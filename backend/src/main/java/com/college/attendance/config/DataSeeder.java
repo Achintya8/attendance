@@ -55,7 +55,7 @@ public class DataSeeder implements CommandLineRunner {
         Teacher teacher = teacherRepository.save(new Teacher(null, "Teacher One", "teacher1@college.edu", mca, teacherUser));
 
         // 4. Create Student
-        Student student = studentRepository.save(new Student(null, "MCA01", "Student One", "student1@college.edu", 1, "A", 2023, "2023-2025", mca, studentUser));
+        Student student = studentRepository.save(new Student(null, "MCA01", "Student One", "student1@college.edu", mca, 1, "A", 2023, "2023-2025", studentUser));
 
         System.out.println("Clean database seeded with admin, teacher1, and student1.");
     }
